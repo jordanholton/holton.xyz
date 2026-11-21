@@ -42,6 +42,12 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+
+        // Bearer tokens from the SSO realm (see App\Auth\Oidc).
+        'api' => [
+            'driver' => 'oidc',
+            'provider' => 'users',
+        ],
     ],
 
     /*
