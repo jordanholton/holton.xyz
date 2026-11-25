@@ -45,5 +45,5 @@ RUN composer install --no-dev --no-scripts --no-plugins --ignore-platform-reqs &
     # TODO: leaving this here to remind us that we need to rework where the APP_KEY is held
     # rm -f .env && \
 
-CMD ["/bin/sh", "-c", "php-fpm","--daemonize", "--fpm-config", "/usr/local/etc/php-fpm.d/www.conf"]
+CMD ["php-fpm"]
 

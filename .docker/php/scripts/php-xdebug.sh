@@ -1,4 +1,8 @@
+set -e
+
 echo "Installing Xdebug extension..."
+# Xdebug's configure needs the kernel headers (linux/rtnetlink.h)
+apk add linux-headers
 pie install -j"${PIE_MAKE_JOBS:-2}" xdebug/xdebug
 
 echo "Configuring Xdebug 3..."

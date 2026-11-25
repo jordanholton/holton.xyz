@@ -1,1 +1,0 @@
-php artisan queue:work --delay=5 --tries=10

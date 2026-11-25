@@ -1,27 +1,17 @@
 FROM php:8.5.13-fpm-alpine3.24
 
+# Local, self-contained image that runs like the deployed one (code baked in,
+# no Xdebug). Used by .docker/docker-compose-server.yml; build assets and
+# vendor/ on the host first (npm run build, composer install).
+
 # copy the setup scripts
 WORKDIR /tmp
-COPY .docker/php/scripts .tmp
-COPY .docker/php/scripts/database.sqlite /var/www/html/database/database.sqlite
-COPY .docker/php/scripts/manifest.json /var/www/html/public/build/
-#COPY .docker/php/scripts/firebase_creds.json /var/www/html/storage/app/firebase/firebase_creds.json
-RUN mv /tmp/.tmp/startups/ /home/www-data/
-
-RUN chmod 777 /tmp/.tmp/*
-
-# Install required packages and extensions for gRPC
-#RUN apk add \
-#    git \
-#    build-base \
-#    autoconf \
-#    libtool \
-#    protobuf-dev \
-#    && pecl install grpc protobuf \
-#   && docker-php-ext-enable grpc protobuf
+COPY --chmod=755 .docker/php/scripts .tmp
+RUN rm -rf /home/www-data/startups && mv /tmp/.tmp/startups/ /home/www-data/
 
 # setup the os and php environments and clean up the setup scripts
 RUN /tmp/.tmp/php-apk.sh \
+  && /tmp/.tmp/php-pie.sh \
   && /tmp/.tmp/php-ext.sh \
   && /tmp/.tmp/php-conf.sh \
   && /tmp/.tmp/php-fpm-conf.sh \
@@ -35,27 +25,21 @@ RUN chown -R www-data:www-data /usr/local/etc/php-fpm.d/* && \
     chown -R www-data:www-data /usr/local/etc/php/* && \
     chown -R www-data:www-data /home/www-data/* && \
     touch /usr/local/var/log/php-fpm.log && \
-    chown -R www-data:www-data /usr/local/var/log/php-fpm.log && \
-    chown -R www-data:www-data /var/www/html/*
+    chown www-data:www-data /usr/local/var/log/php-fpm.log
 
 # set the operating user for php
 USER www-data:www-data
 
-#copy in the keys for composer packages for this app
-WORKDIR /home/www-data/.ssh/
-#COPY --chown=www-data:www-data .docker/php/keys .
-#RUN chmod 600 /home/www-data/.ssh/*
-
 #  switch to the folder with the code and copy the specific files
 WORKDIR /var/www/html
-COPY --chown=www-data:www-data .env .env
 COPY --chown=www-data:www-data composer.json composer.json
-#COPY --chown=www-data:www-data webpack.mix.cjs webpack.mix.cjs
+COPY --chown=www-data:www-data composer.lock composer.lock
+COPY --chown=www-data:www-data vite.config.ts vite.config.ts
 COPY --chown=www-data:www-data package.json package.json
-#COPY --chown=www-data:www-data server.php server.php
 COPY --chown=www-data:www-data phpunit.xml phpunit.xml
 COPY --chown=www-data:www-data artisan artisan
 COPY --chown=www-data:www-data bootstrap/app.php bootstrap/app.php
+COPY --chown=www-data:www-data bootstrap/providers.php bootstrap/providers.php
 
 # copy the folders
 COPY --chown=www-data:www-data public public
@@ -68,12 +52,10 @@ COPY --chown=www-data:www-data storage storage
 COPY --chown=www-data:www-data tests tests
 COPY --chown=www-data:www-data vendor vendor
 
-# install php dependencies, and install npm dependencies
-RUN mkdir bootstrap/cache && \
-    php artisan key:generate --force
-    # npm install && \
-    # npm run prod
-    # TODO: leaving this here to remind us that we need to rework where the APP_KEY is held
-    # rm -f .env && \
+# php-composer.sh seeded .env from .env.initial; give it a fresh key and a database
+RUN mkdir -p bootstrap/cache && \
+    php artisan key:generate --force && \
+    touch database/database.sqlite && \
+    php artisan migrate --force
 
-CMD ["/bin/sh", "-c", "php-fpm","--daemonize", "--fpm-config", "/usr/local/etc/php-fpm.d/www.conf"]
+CMD ["php-fpm"]

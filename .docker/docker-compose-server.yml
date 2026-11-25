@@ -1,0 +1,50 @@
+# Run the app locally the way it's deployed: code baked into the images, no
+# Xdebug. Build assets and vendor/ on the host first, then from the repo root:
+#   docker compose -f .docker/docker-compose-server.yml up --build
+# and open http://localhost:8025.
+networks:
+    network:
+        driver: bridge
+
+services:
+    nginx:
+        image: holton-xyz-nginx:latest
+        build:
+            context: ..
+            dockerfile: ./.docker/nginx/local.dockerfile
+            args:
+                - PHP_HOST=holton-xyz-php
+                - SERVICE_PORT=80
+        ports:
+            - '8025:80'
+        networks:
+            network:
+                aliases:
+                    - holton-xyz-nginx
+        depends_on:
+            - php
+        volumes:
+            - /tmp:/nginx #needed so that nginx.conf can refer to the empty mount /nginx in K8s
+
+    php:
+        image: holton-xyz-php-server:latest
+        build:
+            context: ..
+            dockerfile: ./.docker/php/local-server.dockerfile
+        environment:
+            - APP_ENV=local
+            - REDIS_HOST=redis
+            - CACHE_STORE=redis
+        networks:
+            network:
+                aliases:
+                    - holton-xyz-php
+        depends_on:
+            - redis
+
+    redis:
+        image: redis:7.4-alpine
+        networks:
+            network:
+                aliases:
+                    - redis

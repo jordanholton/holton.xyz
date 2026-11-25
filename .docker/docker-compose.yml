@@ -1,0 +1,56 @@
+# Local development: nginx + php-fpm (with Relay and Xdebug) + Redis, with the
+# repo bind-mounted. Run from the repo root:
+#   docker compose -f .docker/docker-compose.yml up --build
+# then open http://localhost:8024 (run `npm run dev` or `npm run build` on the host for assets).
+networks:
+    network:
+        driver: bridge
+
+services:
+    nginx:
+        image: holton-xyz-nginx:latest
+        build:
+            context: ..
+            dockerfile: ./.docker/nginx/local.dockerfile
+            args:
+                - PHP_HOST=holton-xyz-php
+                - SERVICE_PORT=80
+        ports:
+            - '8024:80'
+        networks:
+            network:
+                aliases:
+                    - holton-xyz-nginx
+        depends_on:
+            - php
+        volumes:
+            - ../public:/usr/share/nginx/html
+            - /tmp:/nginx #needed so that nginx.conf can refer to the empty mount /nginx in K8s
+
+    php:
+        image: holton-xyz-php:latest
+        build:
+            context: ..
+            dockerfile: ./.docker/php/local.dockerfile
+        ports:
+            - '9024:9000'
+        volumes:
+            - ..:/var/www/html
+        environment:
+            - REDIS_HOST=redis
+            - XDEBUG_REMOTE_PORT=9999
+        networks:
+            network:
+                aliases:
+                    - holton-xyz-php
+        depends_on:
+            - redis
+
+    redis:
+        image: redis:7.4-alpine
+        ports:
+            - '6379:6379'
+        networks:
+            network:
+                aliases:
+                    - redis

@@ -145,7 +145,9 @@ return [
 
     'redis' => [
 
-        'client' => env('REDIS_CLIENT', 'phpredis'),
+        // Relay in the Docker images (see .docker/php/scripts/php-ext.sh),
+        // predis (pure PHP) when running on a host without the extension.
+        'client' => env('REDIS_CLIENT', extension_loaded('relay') ? 'relay' : 'predis'),
 
         'options' => [
             'cluster' => env('REDIS_CLUSTER', 'redis'),

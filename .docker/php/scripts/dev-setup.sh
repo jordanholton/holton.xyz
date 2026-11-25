@@ -1,3 +1,2 @@
-rm -f ./config.safe.env
-repo-refresh
+composer install --ignore-platform-reqs
 php artisan key:generate --force
