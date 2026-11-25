@@ -2,6 +2,8 @@
 # Xdebug. Build assets and vendor/ on the host first, then from the repo root:
 #   docker compose -f .docker/docker-compose-server.yml up --build
 # and open http://localhost:8025.
+name: holton-xyz-server
+
 networks:
     network:
         driver: bridge

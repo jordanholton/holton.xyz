@@ -2,6 +2,8 @@
 # repo bind-mounted. Run from the repo root:
 #   docker compose -f .docker/docker-compose.yml up --build
 # then open http://localhost:8024 (run `npm run dev` or `npm run build` on the host for assets).
+name: holton-xyz
+
 networks:
     network:
         driver: bridge
